@@ -92,7 +92,7 @@ void ExpandWildcards( int *argc, char ***argv )
 
 		do
 		{
-			sprintf (filename, "%s%s", filebase, fileinfo.name);
+			sprintf_s (filename, sizeof(filename), "%s%s", filebase, fileinfo.name);
 			ex_argv[ex_argc++] = copystring (filename);
 		} while (_findnext( handle, &fileinfo ) != -1);
 
@@ -186,7 +186,7 @@ void _printf( const char *format, ... ) {
   ATOM a;
 #endif
 	va_start (argptr,format);
-	vsprintf (text, format, argptr);
+	vsprintf_s (text, sizeof(text), format, argptr);
 	va_end (argptr);
 
   printf(text);
@@ -232,7 +232,7 @@ void SetQdirFromPath( const char *path )
 	if (!(path[0] == '/' || path[0] == '\\' || path[1] == ':'))
 	{	// path is partial
 		Q_getwd (temp);
-		strcat (temp, path);
+		strcat_s (temp, sizeof(temp), path);
 		path = temp;
 	}
 
@@ -257,7 +257,7 @@ void SetQdirFromPath( const char *path )
         sep++;
         count++;
       }
-			strncpy (qdir, path, c+len+count-path);
+			strncpy_s (qdir, sizeof(qdir), path, c+len+count-path);
 			qprintf ("qdir: %s\n", qdir);
 			for ( i = 0; i < strlen( qdir ); i++ )
 			{
@@ -270,7 +270,7 @@ void SetQdirFromPath( const char *path )
 			{
 				if (*c == '/' || *c == '\\')
 				{
-					strncpy (gamedir, path, c+1-path);
+					strncpy_s (gamedir, sizeof(gamedir), path, c+1-path);
 
 					for ( i = 0; i < strlen( gamedir ); i++ )
 					{
@@ -281,7 +281,7 @@ void SetQdirFromPath( const char *path )
 					qprintf ("gamedir: %s\n", gamedir);
 
 					if ( !writedir[0] )
-						strcpy( writedir, gamedir );
+						strcpy_s( writedir, sizeof(writedir), gamedir );
 					else if ( writedir[strlen( writedir )-1] != '/' )
 					{
 						writedir[strlen( writedir )] = '/';
@@ -306,10 +306,10 @@ char *ExpandArg (const char *path)
 	if (path[0] != '/' && path[0] != '\\' && path[1] != ':')
 	{
 		Q_getwd (full);
-		strcat (full, path);
+		strcat_s (full, sizeof(full), path);
 	}
 	else
-		strcpy (full, path);
+		strcpy_s (full, sizeof(full), path);
 	return full;
 }
 
@@ -319,10 +319,10 @@ char *ExpandPath (const char *path)
 	if (!qdir)
 		Error ("ExpandPath called without qdir set");
 	if (path[0] == '/' || path[0] == '\\' || path[1] == ':') {
-		strcpy( full, path );
+		strcpy_s( full, sizeof(full), path );
 		return full;
 	}
-	sprintf (full, "%s%s", qdir, path);
+	sprintf_s (full, sizeof(full), "%s%s", qdir, path);
 	return full;
 }
 
@@ -332,10 +332,10 @@ char *ExpandGamePath (const char *path)
 	if (!qdir)
 		Error ("ExpandGamePath called without qdir set");
 	if (path[0] == '/' || path[0] == '\\' || path[1] == ':') {
-		strcpy( full, path );
+		strcpy_s( full, sizeof(full), path );
 		return full;
 	}
-	sprintf (full, "%s%s", gamedir, path);
+	sprintf_s (full, sizeof(full), "%s%s", gamedir, path);
 	return full;
 }
 
@@ -348,7 +348,7 @@ char *ExpandPathAndArchive (const char *path)
 
 	if (archive)
 	{
-		sprintf (archivename, "%s/%s", archivedir, path);
+		sprintf_s (archivename, sizeof(archivename), "%s/%s", archivedir, path);
 		QCopyFile (expanded, archivename);
 	}
 	return expanded;
@@ -359,7 +359,7 @@ char *copystring(const char *s)
 {
 	char	*b;
 	b = malloc(strlen(s)+1);
-	strcpy (b, s);
+	strcpy_s (b, (strlen(s) + 1),  s);
 	return b;
 }
 
@@ -401,7 +401,7 @@ void Q_getwd (char *out)
 
 #ifdef WIN32
    _getcwd (out, 256);
-   strcat (out, "\\");
+   strcat_s (out, _msize(out), "\\");
 #else
    getcwd (out, 256);
    strcat (out, "/");
@@ -425,8 +425,11 @@ void Q_mkdir (const char *path)
 	if (mkdir (path, 0777) != -1)
 		return;
 #endif
-	if (errno != EEXIST)
-		Error ("mkdir %s: %s",path, strerror(errno));
+	if (errno != EEXIST) {
+		char sys_msg[64];
+		strerror_s(sys_msg, sizeof(sys_msg), errno);
+		Error("mkdir %s: %s", path, sys_msg);
+	}
 }
 
 /*
@@ -641,10 +644,14 @@ FILE *SafeOpenWrite (const char *filename)
 {
 	FILE	*f;
 
-	f = fopen(filename, "wb");
+	errno_t r = fopen_s(&f, filename, "wb");
 
 	if (!f)
-		Error ("Error opening %s: %s",filename,strerror(errno));
+	{
+		char sys_msg[64];
+		strerror_s(sys_msg, sizeof(sys_msg), errno);
+		Error("Error opening %s: %s", filename, sys_msg);
+	}
 
 	return f;
 }
@@ -653,10 +660,14 @@ FILE *SafeOpenRead (const char *filename)
 {
 	FILE	*f;
 
-	f = fopen(filename, "rb");
+	errno_t r = fopen_s(&f, filename, "rb");
 
 	if (!f)
-		Error ("Error opening %s: %s",filename,strerror(errno));
+	{
+		char sys_msg[64];
+		strerror_s(sys_msg, sizeof(sys_msg), errno);
+		Error("Error opening %s: %s", filename, sys_msg);
+	}
 
 	return f;
 }
@@ -685,7 +696,7 @@ qboolean	FileExists (const char *filename)
 {
 	FILE	*f;
 
-	f = fopen (filename, "r");
+	errno_t r = fopen_s (&f, filename, "r");
 	if (!f)
 		return qfalse;
 	fclose (f);
@@ -761,7 +772,7 @@ int    TryLoadFile (const char *filename, void **bufferptr)
 
 	*bufferptr = NULL;
 
-	f = fopen (filename, "rb");
+	errno_t r = fopen_s (&f, filename, "rb");
 	if (!f)
 		return -1;
 	length = Q_filelength (f);
@@ -807,7 +818,7 @@ void DefaultExtension (char *path, const char *extension)
 		src--;
 	}
 
-	strcat (path, extension);
+	strcat_s (path, _msize(path), extension);
 }
 
 
@@ -817,9 +828,9 @@ void DefaultPath (char *path, const char *basepath)
 
 	if (path[0] == PATHSEPERATOR)
 		return;                   // absolute path location
-	strcpy (temp,path);
-	strcpy (path,basepath);
-	strcat (path,temp);
+	strcpy_s (temp, sizeof(temp), path);
+	strcpy_s (path, _msize(path), basepath);
+	strcat_s (path, _msize(path), temp);
 }
 
 
@@ -908,7 +919,7 @@ void ExtractFileExtension (const char *path, char *dest)
 		return;
 	}
 
-	strcpy (dest,src);
+	strcpy_s (dest, _msize(dest), src);
 }
 
 

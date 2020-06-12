@@ -289,7 +289,7 @@ void DefineSymbol( char *sym, int value ) {
 
 	// add the file prefix to local symbols to guarantee unique
 	if ( sym[0] == '$' ) {
-		sprintf( expanded, "%s_%i", sym, currentFileIndex );
+		sprintf_s( expanded, sizeof(expanded), "%s_%i", sym, currentFileIndex );
 		sym = expanded;
 	}
 
@@ -342,7 +342,7 @@ int LookupSymbol( char *sym ) {
 
 	// add the file prefix to local symbols to guarantee unique
 	if ( sym[0] == '$' ) {
-		sprintf( expanded, "%s_%i", sym, currentFileIndex );
+		sprintf_s( expanded, sizeof(expanded), "%s_%i", sym, currentFileIndex );
 		sym = expanded;
 	}
 
@@ -669,7 +669,7 @@ void AssembleLine( void ) {
 		char	name[1024];
 
 		Parse();					// function name
-		strcpy( name, token );
+		strcpy_s( name, sizeof(name), token );
 
 		DefineSymbol( token, instructionCount ); // segment[CODESEG].imageUsed );
 
@@ -745,7 +745,7 @@ void AssembleLine( void ) {
 		char	name[1024];
 
 		Parse();
-		strcpy( name, token );
+		strcpy_s( name, sizeof(name), token );
 		Parse();
 		DefineSymbol( name, atoi(token) );
 		return;
@@ -825,9 +825,9 @@ void WriteMapFile( void ) {
 	char		imageName[MAX_OS_PATH];
 	int			seg;
 
-	strcpy( imageName, outputFilename );
+	strcpy_s( imageName, sizeof(imageName), outputFilename );
 	StripExtension( imageName );
-	strcat( imageName, ".map" );
+	strcat_s( imageName, sizeof(imageName), ".map" );
 
 	printf( "Writing %s...\n", imageName );
 	f = SafeOpenWrite( imageName );
@@ -856,9 +856,9 @@ void WriteVmFile( void ) {
 	FILE	*f;
 
 	printf( "%i total errors\n", errorCount );
-	strcpy( imageName, outputFilename );
+	strcpy_s( imageName, sizeof(imageName), outputFilename );
 	StripExtension( imageName );
-	strcat( imageName, ".qvm" );
+	strcat_s( imageName, sizeof(imageName), ".qvm" );
 
 	remove( imageName );
 
@@ -905,7 +905,7 @@ void Assemble( void ) {
 	printf( "outputFilename: %s\n", outputFilename );
 
 	for ( i = 0 ; i < numAsmFiles ; i++ ) {
-		strcpy( filename, asmFileNames[ i ] );
+		strcpy_s( filename, sizeof(filename), asmFileNames[ i ] );
 		DefaultExtension( filename, ".asm" );
 		LoadFile( filename, (void **)&asmFiles[i] );
 	}
@@ -961,7 +961,7 @@ void ParseOptionFile( const char *filename ) {
 	char		expanded[MAX_OS_PATH];
 	char		*text, *text_p;
 
-	strcpy( expanded, filename );
+	strcpy_s( expanded, sizeof(expanded), filename );
 	DefaultExtension( expanded, ".q3asm" );
 	LoadFile( expanded, (void **)&text );
 	if ( !text ) {
@@ -975,7 +975,7 @@ void ParseOptionFile( const char *filename ) {
 			// allow output override in option file
 			text_p = COM_Parse( text_p );
 			if ( text_p ) {
-				strcpy( outputFilename, com_token );
+				strcpy_s( outputFilename, sizeof(outputFilename), com_token );
 			}
 			continue;
 		}
@@ -1004,7 +1004,7 @@ int main( int argc, char **argv ) {
 	InitTables();
 
 	// default filename is "q3asm"
-	strcpy( outputFilename, "q3asm" );
+	strcpy_s( outputFilename, sizeof(outputFilename), "q3asm" );
 	numAsmFiles = 0;	
 
 	for ( i = 1 ; i < argc ; i++ ) {
@@ -1015,7 +1015,7 @@ int main( int argc, char **argv ) {
 			if ( i == argc - 1 ) {
 				Error( "-o must preceed a filename" );
 			}
-			strcpy( outputFilename, argv[ i+1 ] );
+			strcpy_s( outputFilename, sizeof(outputFilename), argv[ i+1 ] );
 			i++;
 			continue;
 		}
